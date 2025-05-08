@@ -6,6 +6,7 @@ import { FiDollarSign } from 'react-icons/fi'
 import { BsPeople, BsGraphUp } from 'react-icons/bs'
 import { IoMdTrendingUp, IoMdTrendingDown } from 'react-icons/io'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { DocumentsTable } from './components/documents-table';
 
 function App() {
   const chartData = [
@@ -62,6 +63,26 @@ function App() {
     { icon: <RiLineChartLine className="w-4 h-4" />, label: "Analytics" },
     { icon: <RiUserLine className="w-4 h-4" />, label: "Customers" }
   ]
+
+  const data = [
+    {
+      header: "Cover page",
+      type: "Cover page",
+      status: "In Process",
+      target: "18",
+      limit: "5",
+      reviewer: "Eddie Lake"
+    },
+    {
+      header: "Table of contents",
+      type: "Table of contents",
+      status: "Done",
+      target: "29",
+      limit: "24",
+      reviewer: "Eddie Lake"
+    },
+    // ... puedes agregar más datos aquí
+  ];
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme')
@@ -179,6 +200,11 @@ function App() {
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+          </div>
+
+          {/* Agregar la tabla después del área del gráfico */}
+          <div className="rounded-lg border bg-card p-6">
+            <DocumentsTable data={data} />
           </div>
         </div>
       </div>
