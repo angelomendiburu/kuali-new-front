@@ -52,4 +52,24 @@ function Button({
   );
 }
 
+// Botón para login con Google
+export function GoogleLoginButton({ className, ...props }) {
+  const handleGoogleLogin = (e) => {
+    e.preventDefault(); // Evita que el formulario se envíe
+    window.location.href = "http://localhost:3000/api/auth/google";
+  };
+
+  return (
+    <button
+      type="button"
+      className={cn("bg-white text-black border border-gray-300 rounded px-4 py-2 flex items-center gap-2", className)}
+      onClick={handleGoogleLogin}
+      {...props}
+    >
+      {/* Puedes agregar aquí un ícono de Google si lo deseas */}
+      Iniciar sesión con Google
+    </button>
+  );
+}
+
 export { Button, buttonVariants }
