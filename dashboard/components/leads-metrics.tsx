@@ -1,8 +1,20 @@
 import { TrendingDownIcon, TrendingUpIcon } from "lucide-react"
-import { Area, AreaChart, CartesianGrid } from "recharts"
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer } from "recharts"
 
 import { Badge } from "@/components/ui/badge"
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { type ChartConfig, ChartContainer } from "@/components/ui/chart"
+
+const chartConfig = {
+  desktop: {
+    label: "Desktop",
+    color: "hsl(var(--chart-1))",
+  },
+  mobile: {
+    label: "Mobile",
+    color: "hsl(var(--chart-2))",
+  },
+} satisfies ChartConfig
 
 const metricsData = [
   {
@@ -59,8 +71,39 @@ export function LeadsMetrics() {
                 {metric.change}
               </Badge>
             </div>
+            <div className="absolute bottom-0 left-0 h-[80px] w-full">
+              <ChartContainer config={chartConfig}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={[
+                      { date: "2024-01", value: 2400 },
+                      { date: "2024-02", value: 1398 },
+                      { date: "2024-03", value: 9800 },
+                      { date: "2024-04", value: 3908 },
+                      { date: "2024-05", value: 4800 },
+                      { date: "2024-06", value: 3800 },
+                    ]}
+                    margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id={`gradient-${metric.title}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
+                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke="hsl(var(--primary))"
+                      fill={`url(#gradient-${metric.title})`}
+                      strokeWidth={1.5}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </div>
           </CardHeader>
-          <CardFooter className="flex-col items-start gap-1 text-sm">
+          <CardFooter className="mt-[80px] flex-col items-start gap-1 text-sm">
             <div className="line-clamp-1 flex gap-2 font-medium">
               {metric.description}
               {metric.trend === "up" ? (

@@ -28,5 +28,9 @@ export default defineConfig({
     commonjsOptions: {
       transformMixedEsModules: true,
     },
+  },
+  server: {
+    port: 5004,
+    strictPort: true // Esto forzará a Vite a usar específicamente el puerto 5004
   }
 })

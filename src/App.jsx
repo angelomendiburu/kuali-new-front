@@ -1,88 +1,118 @@
-import { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Button } from './components/ui/button'
 import { toggleTheme } from './lib/utils'
 import { RiDashboardLine, RiLineChartLine, RiUserLine, RiMoonLine, RiSunLine } from 'react-icons/ri'
 import { FiDollarSign } from 'react-icons/fi'
 import { BsPeople, BsGraphUp } from 'react-icons/bs'
-import { IoMdTrendingUp, IoMdTrendingDown } from 'react-icons/io'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { DocumentsTable } from './components/documents-table';
+import { IoMdTrendingUp } from 'react-icons/io'
+import { DocumentsTable } from './components/documents-table'
+import { leadsService } from './services/leadsService'
+import TableSkeleton from './components/ui/table-skeleton'
+import { Toaster } from 'sonner'
+import { Metrics } from './components/metrics'
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card"
 
 function App() {
-  const chartData = [
-    { date: 'Jun 23', visits: 400, extraVisits: 240 },
-    { date: 'Jun 24', visits: 300, extraVisits: 139 },
-    { date: 'Jun 25', visits: 600, extraVisits: 380 },
-    { date: 'Jun 26', visits: 500, extraVisits: 430 },
-    { date: 'Jun 27', visits: 700, extraVisits: 340 },
-    { date: 'Jun 28', visits: 400, extraVisits: 200 },
-    { date: 'Jun 29', visits: 800, extraVisits: 520 }
-  ];
+  const [leads, setLeads] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [metrics, setMetrics] = useState([]);
 
-  const metrics = [
-    {
-      title: "Total Revenue",
-      value: "$1,250.00",
-      change: "+12.5%",
-      description: "Trending up this month",
-      subtitle: "Visitors for the last 6 months",
-      icon: <FiDollarSign className="w-4 h-4" />,
-      trendIcon: <IoMdTrendingUp className="w-4 h-4" />
-    },
-    {
-      title: "New Customers",
-      value: "1,234",
-      change: "-20%",
-      description: "Down 20% this period",
-      subtitle: "Acquisition needs attention",
-      icon: <BsPeople className="w-4 h-4" />,
-      trendIcon: <IoMdTrendingDown className="w-4 h-4" />
-    },
-    {
-      title: "Active Accounts",
-      value: "45,678",
-      change: "+12.5%",
-      description: "Strong user retention",
-      subtitle: "Engagement exceed targets",
-      icon: <RiUserLine className="w-4 h-4" />,
-      trendIcon: <IoMdTrendingUp className="w-4 h-4" />
-    },
-    {
-      title: "Growth Rate",
-      value: "4.5%",
-      change: "+4.5%",
-      description: "Steady performance",
-      subtitle: "Meets growth projections",
-      icon: <BsGraphUp className="w-4 h-4" />,
-      trendIcon: <IoMdTrendingUp className="w-4 h-4" />
+  const calculateMetrics = (leads) => {
+    const now = new Date();
+    const lastMonth = new Date(now.setMonth(now.getMonth() - 1));
+    
+    const totalLeads = leads.length;
+    const newLeadsThisMonth = leads.filter(lead => new Date(lead.created_at) >= lastMonth).length;
+    const activeLeads = leads.filter(lead => lead.status !== 'cerrado').length;
+    const convertedLeads = leads.filter(lead => lead.status === 'cerrado').length;
+    const conversionRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
+
+    // Calcular las tendencias
+    const getTrend = (value) => {
+      return value > 0 ? 'up' : value < 0 ? 'down' : 'up';
+    };
+
+    return [
+      {
+        title: "Total Leads",
+        value: totalLeads.toString(),
+        change: `+${newLeadsThisMonth}`,
+        trend: getTrend(newLeadsThisMonth),
+        description: "Crecimiento este mes",
+        subtitle: "Leads en los últimos 6 meses",
+        icon: <FiDollarSign className="w-4 h-4" />,
+        trendIcon: <IoMdTrendingUp className="w-4 h-4" />
+      },
+      {
+        title: "Nuevos Leads",
+        value: newLeadsThisMonth.toString(),
+        change: newLeadsThisMonth > 0 ? `+${newLeadsThisMonth}` : newLeadsThisMonth.toString(),
+        trend: getTrend(newLeadsThisMonth),
+        description: "Incremento en adquisición",
+        subtitle: "Tasa de conversión mejorada",
+        icon: <BsPeople className="w-4 h-4" />,
+        trendIcon: <IoMdTrendingUp className="w-4 h-4" />
+      },
+      {
+        title: "Leads Activos",
+        value: activeLeads.toString(),
+        change: `+${activeLeads - (totalLeads - activeLeads)}`,
+        trend: getTrend(activeLeads - (totalLeads - activeLeads)),
+        description: "Alta retención",
+        subtitle: "Engagement superior al objetivo",
+        icon: <RiUserLine className="w-4 h-4" />,
+        trendIcon: <IoMdTrendingUp className="w-4 h-4" />
+      },
+      {
+        title: "Tasa de Conversión",
+        value: `${conversionRate}%`,
+        change: `${conversionRate > 0 ? '+' : ''}${conversionRate}%`,
+        trend: getTrend(conversionRate),
+        description: "Rendimiento estable",
+        subtitle: "Cumple proyecciones",
+        icon: <BsGraphUp className="w-4 h-4" />,
+        trendIcon: <IoMdTrendingUp className="w-4 h-4" />
+      }
+    ];
+  };
+
+  const fetchLeads = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await leadsService.getAll();
+      setLeads(data);
+      setMetrics(calculateMetrics(data));
+      setError(null);
+    } catch (err) {
+      console.error('Error al obtener leads:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-  ]
+  }, []); // No dependencies needed as it only uses setState functions
+
+  const handleLeadUpdated = React.useCallback(async () => {
+    try {
+      // Solo obtener los leads para actualizar las métricas
+      const data = await leadsService.getAll();
+      setMetrics(calculateMetrics(data));
+    } catch (err) {
+      console.error('Error al actualizar métricas:', err);
+    }
+  }, [calculateMetrics]);
+
+  // Refrescar los leads solo en la carga inicial
+  useEffect(() => {
+    fetchLeads();
+  }, [fetchLeads]);
 
   const menuItems = [
     { icon: <RiDashboardLine className="w-4 h-4" />, label: "Dashboard" },
-    { icon: <RiLineChartLine className="w-4 h-4" />, label: "Analytics" },
-    { icon: <RiUserLine className="w-4 h-4" />, label: "Customers" }
+    { icon: <RiLineChartLine className="w-4 h-4" />, label: "Leads" },
+    { icon: <RiUserLine className="w-4 h-4" />, label: "Usuarios" }
   ]
-
-  const data = [
-    {
-      header: "Cover page",
-      type: "Cover page",
-      status: "In Process",
-      target: "18",
-      limit: "5",
-      reviewer: "Eddie Lake"
-    },
-    {
-      header: "Table of contents",
-      type: "Table of contents",
-      status: "Done",
-      target: "29",
-      limit: "24",
-      reviewer: "Eddie Lake"
-    },
-    // ... puedes agregar más datos aquí
-  ];
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme')
@@ -92,123 +122,209 @@ function App() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="flex min-h-screen">
-        {/* Sidebar */}
-        <div className="w-64 bg-card border-r border-border p-4">
-          <div className="flex items-center gap-2 mb-8">
-            <RiDashboardLine className="w-6 h-6" />
-            <h1 className="text-xl font-semibold">Acme Inc.</h1>
-          </div>
-          <nav className="space-y-2">
-            {menuItems.map((item, index) => (
-              <Button 
-                key={index}
-                variant="ghost" 
-                className="w-full justify-start gap-2"
-              >
-                {item.icon}
-                {item.label}
-              </Button>
-            ))}
-          </nav>
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 p-8">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold">Dashboard</h2>
-            <Button 
-              variant="outline"
-              onClick={toggleTheme}
-              className="gap-2"
-            >
-              <RiSunLine className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <RiMoonLine className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              <span>Toggle Theme</span>
-            </Button>
-          </div>
-
-          {/* Metrics Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {metrics.map((metric, index) => (
-              <div key={index} className="p-6 bg-card rounded-lg border border-border">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      {metric.icon}
-                      <p className="text-sm text-muted-foreground">{metric.title}</p>
-                    </div>
-                    <h3 className="text-2xl font-bold">{metric.value}</h3>
-                  </div>
-                  <span className={`text-sm flex items-center gap-1 ${
-                    metric.change.startsWith('+') ? 'text-green-500' : 'text-red-500'
-                  }`}>
-                    {metric.trendIcon}
-                    {metric.change}
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground">{metric.description}</p>
-                <p className="text-xs text-muted-foreground mt-2">{metric.subtitle}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Chart Area */}
-          <div className="bg-card p-6 rounded-lg border border-border">
-            <div className="flex items-center gap-2 mb-4">
-              <RiLineChartLine className="w-5 h-5" />
-              <h3 className="text-lg font-semibold">Total Visitors</h3>
+    <>
+      <Toaster 
+        position="top-right"
+        expand={false}
+        richColors 
+        closeButton
+      />
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="flex min-h-screen">
+          {/* Sidebar */}
+          <div className="w-64 bg-card border-r border-border p-4">
+            <div className="flex items-center gap-2 mb-8">
+              <RiDashboardLine className="w-6 h-6" />
+              <h1 className="text-xl font-semibold">Kuali CRM</h1>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">Total for the last 3 months</p>
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={chartData}
-                  margin={{
-                    top: 10,
-                    right: 30,
-                    left: 0,
-                    bottom: 0,
-                  }}
+            <nav className="space-y-2">
+              {menuItems.map((item, index) => (
+                <Button 
+                  key={index}
+                  variant="ghost" 
+                  className="w-full justify-start gap-2"
                 >
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted/20" />
-                  <XAxis 
-                    dataKey="date" 
-                    className="text-muted-foreground text-xs"
-                  />
-                  <YAxis 
-                    className="text-muted-foreground text-xs"
-                  />
-                  <Tooltip />
-                  <Area
-                    type="monotone"
-                    dataKey="extraVisits"
-                    stackId="1"
-                    stroke="hsl(var(--chart-1))"
-                    fill="hsl(var(--chart-1))"
-                    fillOpacity={0.2}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="visits"
-                    stackId="1"
-                    stroke="hsl(var(--chart-2))"
-                    fill="hsl(var(--chart-2))"
-                    fillOpacity={0.2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+                  {item.icon}
+                  {item.label}
+                </Button>
+              ))}
+            </nav>
           </div>
 
-          {/* Agregar la tabla después del área del gráfico */}
-          <div className="rounded-lg border bg-card p-6">
-            <DocumentsTable data={data} />
+          {/* Main Content */}
+          <div className="flex-1 p-8">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-3xl font-bold">Gestión de Leads</h2>
+              <Button 
+                variant="outline"
+                onClick={toggleTheme}
+                className="gap-2"
+              >
+                <RiSunLine className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <RiMoonLine className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                <span>Cambiar Tema</span>
+              </Button>
+            </div>
+
+            {/* Metrics Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {metrics.map((metric, index) => (
+                <Metrics key={index} metric={metric} />
+              ))}
+            </div>
+
+            {/* Chart */}
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Total de Leads por Fecha de Creación</CardTitle>
+                <CardDescription>Historial de creación de leads del 3 al 10 de mayo</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={(() => {
+                        const dates = [];
+                        for (let day = 3; day <= 10; day++) {
+                          dates.push({
+                            date: `2025-05-${String(day).padStart(2, '0')}`,
+                            total: 0
+                          });
+                        }
+
+                        // Log para verificar las fechas de los leads
+                        console.log('Fechas de los leads:', leads.map(lead => ({
+                          created_at: lead.created_at,
+                          date: new Date(lead.created_at).toISOString()
+                        })));
+
+                        // Log para verificar las fechas base del gráfico
+                        console.log('Fechas base del gráfico:', dates);
+
+                        leads.forEach(lead => {
+                          const leadDate = new Date(lead.created_at);
+                          const dateStr = leadDate.toISOString().split('T')[0];
+                          console.log('Procesando lead:', {
+                            original: lead.created_at,
+                            dateStr,
+                            leadDate
+                          });
+                          
+                          const dateEntry = dates.find(d => d.date === dateStr);
+                          if (dateEntry) {
+                            dateEntry.total += 1;
+                          }
+                        });
+
+                        // Log para verificar el resultado final
+                        console.log('Datos finales del gráfico:', dates);
+
+                        return dates;
+                      })()}
+                      margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
+                          <stop offset="50%" stopColor="hsl(var(--primary))" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.1}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.2} />
+                      <XAxis 
+                        dataKey="date" 
+                        tickFormatter={(dateStr) => {
+                          const day = dateStr.split('-')[2];
+                          return `${parseInt(day)} may`;
+                        }}
+                        className="text-muted-foreground text-xs"
+                        stroke="hsl(var(--muted-foreground))"
+                        tickLine={false}
+                        axisLine={false}
+                        dy={10}
+                      />
+                      <YAxis
+                        className="text-muted-foreground text-xs"
+                        stroke="hsl(var(--muted-foreground))"
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(value) => Math.floor(value)}
+                        dx={-10}
+                      />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            return (
+                              <div className="rounded-lg border bg-background p-2 shadow-xl">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="flex flex-col">
+                                    <span className="text-[0.70rem] uppercase text-muted-foreground">
+                                      Fecha
+                                    </span>
+                                    <span className="font-bold text-foreground">
+                                      {new Date(payload[0].payload.date).toLocaleDateString('es-ES', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric'
+                                      })}
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-[0.70rem] uppercase text-muted-foreground">
+                                      Total Leads
+                                    </span>
+                                    <span className="font-bold text-primary">
+                                      {payload[0].value}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="total"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={2}
+                        fill="url(#colorTotal)"
+                        fillOpacity={1}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tabla de Leads */}
+            <div className="rounded-lg border bg-card p-6">
+              {error ? (
+                <div className="text-red-500 p-4 rounded-md bg-red-50 border border-red-200">
+                  <h3 className="text-lg font-semibold mb-2">Error al cargar los leads</h3>
+                  <p>{error}</p>
+                  <Button
+                    className="mt-4"
+                    variant="outline"
+                    onClick={fetchLeads}
+                  >
+                    Reintentar
+                  </Button>
+                </div>
+              ) : loading ? (
+                <TableSkeleton />
+              ) : (
+                <DocumentsTable 
+                  data={leads} 
+                  onLeadUpdated={handleLeadUpdated}
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 

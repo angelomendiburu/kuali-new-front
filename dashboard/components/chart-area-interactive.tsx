@@ -103,9 +103,6 @@ const chartData = [
 ]
 
 const chartConfig = {
-  visitors: {
-    label: "Visitors",
-  },
   desktop: {
     label: "Desktop",
     color: "hsl(var(--chart-1))",
@@ -128,7 +125,7 @@ export function ChartAreaInteractive() {
 
   const filteredData = chartData.filter((item) => {
     const date = new Date(item.date)
-    const referenceDate = new Date("2024-06-30")
+    const referenceDate = new Date() // Usar la fecha actual como referencia
     let daysToSubtract = 90
     if (timeRange === "30d") {
       daysToSubtract = 30
@@ -167,37 +164,33 @@ export function ChartAreaInteractive() {
             </ToggleGroupItem>
           </ToggleGroup>
           <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="@[767px]/card:hidden flex w-40" aria-label="Select a value">
+            <SelectTrigger className="@[767px]/card:hidden flex w-40" aria-label="Select range">
               <SelectValue placeholder="Last 3 months" />
             </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="90d" className="rounded-lg">
-                Last 3 months
-              </SelectItem>
-              <SelectItem value="30d" className="rounded-lg">
-                Last 30 days
-              </SelectItem>
-              <SelectItem value="7d" className="rounded-lg">
-                Last 7 days
-              </SelectItem>
+            <SelectContent>
+              <SelectItem value="90d">Last 3 months</SelectItem>
+              <SelectItem value="30d">Last 30 days</SelectItem>
+              <SelectItem value="7d">Last 7 days</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
         <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
-          <AreaChart data={filteredData}>
+          <AreaChart data={filteredData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id="fillDesktop" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-desktop)" stopOpacity={1.0} />
-                <stop offset="95%" stopColor="var(--color-desktop)" stopOpacity={0.1} />
+                <stop offset="0%" stopColor="hsl(var(--chart-1))" stopOpacity={0.8} />
+                <stop offset="50%" stopColor="hsl(var(--chart-1))" stopOpacity={0.4} />
+                <stop offset="100%" stopColor="hsl(var(--chart-1))" stopOpacity={0.1} />
               </linearGradient>
               <linearGradient id="fillMobile" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-mobile)" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="var(--color-mobile)" stopOpacity={0.1} />
+                <stop offset="0%" stopColor="hsl(var(--chart-2))" stopOpacity={0.8} />
+                <stop offset="50%" stopColor="hsl(var(--chart-2))" stopOpacity={0.4} />
+                <stop offset="100%" stopColor="hsl(var(--chart-2))" stopOpacity={0.1} />
               </linearGradient>
             </defs>
-            <CartesianGrid vertical={false} />
+            <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
             <XAxis
               dataKey="date"
               tickLine={false}
@@ -226,8 +219,26 @@ export function ChartAreaInteractive() {
                 />
               }
             />
-            <Area dataKey="mobile" type="natural" fill="url(#fillMobile)" stroke="var(--color-mobile)" stackId="a" />
-            <Area dataKey="desktop" type="natural" fill="url(#fillDesktop)" stroke="var(--color-desktop)" stackId="a" />
+            <Area
+              dataKey="mobile"
+              type="monotone"
+              strokeWidth={2}
+              fill="url(#fillMobile)"
+              stroke="hsl(var(--chart-2))"
+              fillOpacity={1}
+              strokeOpacity={0.8}
+              stackId="a"
+            />
+            <Area
+              dataKey="desktop"
+              type="monotone"
+              strokeWidth={2}
+              fill="url(#fillDesktop)"
+              stroke="hsl(var(--chart-1))"
+              fillOpacity={1}
+              strokeOpacity={0.8}
+              stackId="a"
+            />
           </AreaChart>
         </ChartContainer>
       </CardContent>
