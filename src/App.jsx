@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from './components/ui/button';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import LoginPage from "../App/Login/page";
+import TemplateForm from './components/TemplateForm';
 
 function App() {
   return (
@@ -9,6 +10,7 @@ function App() {
       <Routes>
         {/* Ruta para el login */}
         <Route path="/api/users/login" element={<LoginPage />} />
+        <Route path="/api/templates/" element={<TemplateForm />} />
         {/* Ruta por defecto o de ejemplo */}
         <Route
           path="/"
