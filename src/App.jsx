@@ -19,7 +19,7 @@ function App() {
   const [error, setError] = useState(null);
   const [metrics, setMetrics] = useState([]);
 
-  const calculateMetrics = (leads) => {
+  const calculateMetrics = React.useCallback((leads) => {
     const now = new Date();
     const lastMonth = new Date(now.setMonth(now.getMonth() - 1));
     
@@ -76,7 +76,7 @@ function App() {
         trendIcon: <IoMdTrendingUp className="w-4 h-4" />
       }
     ];
-  };
+  }, []);
 
   const fetchLeads = React.useCallback(async () => {
     try {
@@ -91,11 +91,10 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, []); // No dependencies needed as it only uses setState functions
+  }, [calculateMetrics]);
 
   const handleLeadUpdated = React.useCallback(async () => {
     try {
-      // Solo obtener los leads para actualizar las métricas
       const data = await leadsService.getAll();
       setMetrics(calculateMetrics(data));
     } catch (err) {
