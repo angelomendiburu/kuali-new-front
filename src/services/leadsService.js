@@ -2,6 +2,9 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:3003/api';
 
+// Configurar axios para incluir credenciales
+axios.defaults.withCredentials = true;
+
 export const leadsService = {
   getAll: async () => {
     try {
