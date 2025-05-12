@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom"
 import { Button } from './components/ui/button'
 import { toggleTheme } from './lib/utils'
-import { RiDashboardLine, RiLineChartLine, RiUserLine, RiMoonLine, RiSunLine } from 'react-icons/ri'
+import { RiDashboardLine, RiLineChartLine, RiUserLine, RiMoonLine, RiSunLine, RiFileTextLine } from 'react-icons/ri'
 import { FiDollarSign } from 'react-icons/fi'
 import { BsPeople, BsGraphUp } from 'react-icons/bs'
 import { IoMdTrendingUp } from 'react-icons/io'
@@ -98,6 +98,7 @@ function Dashboard() {
   const handleLeadUpdated = React.useCallback(async () => {
     try {
       const data = await leadsService.getAll();
+      setLeads(data);
       setMetrics(calculateMetrics(data));
     } catch (err) {
       console.error('Error al actualizar métricas:', err);
@@ -108,10 +109,172 @@ function Dashboard() {
     fetchLeads();
   }, [fetchLeads]);
 
+  const getDateRange = () => {
+    const today = new Date();
+    const endDate = new Date(today);
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - 7); // Mostrar últimos 7 días
+
+    const dates = [];
+    let currentDate = new Date(startDate);
+
+    while (currentDate <= endDate) {
+      dates.push({
+        date: currentDate.toISOString().split('T')[0],
+        total: 0
+      });
+      currentDate = new Date(currentDate);
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return dates;
+  };
+
+  return (
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {metrics.map((metric, index) => (
+          <Metrics key={index} metric={metric} />
+        ))}
+      </div>
+
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Total de Leads por Fecha de Creación</CardTitle>
+          <CardDescription>
+            Historial de creación de leads de los últimos 7 días
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={(() => {
+                  const dates = getDateRange();
+
+                  leads.forEach(lead => {
+                    const leadDate = new Date(lead.created_at);
+                    const dateStr = leadDate.toISOString().split('T')[0];
+                    const dateEntry = dates.find(d => d.date === dateStr);
+                    if (dateEntry) {
+                      dateEntry.total += 1;
+                    }
+                  });
+
+                  return dates;
+                })()}
+                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
+                    <stop offset="50%" stopColor="hsl(var(--primary))" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.1}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.2} />
+                <XAxis 
+                  dataKey="date" 
+                  tickFormatter={(dateStr) => {
+                    const date = new Date(dateStr);
+                    return `${date.getDate()} ${date.toLocaleString('es', { month: 'short' })}`;
+                  }}
+                  className="text-muted-foreground text-xs"
+                  stroke="hsl(var(--muted-foreground))"
+                  tickLine={false}
+                  axisLine={false}
+                  dy={10}
+                />
+                <YAxis
+                  className="text-muted-foreground text-xs"
+                  stroke="hsl(var(--muted-foreground))"
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => Math.floor(value)}
+                  dx={-10}
+                />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-xl">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="flex flex-col">
+                              <span className="text-[0.70rem] uppercase text-muted-foreground">
+                                Fecha
+                              </span>
+                              <span className="font-bold text-foreground">
+                                {new Date(payload[0].payload.date).toLocaleDateString('es-ES', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })}
+                              </span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[0.70rem] uppercase text-muted-foreground">
+                                Total Leads
+                              </span>
+                              <span className="font-bold text-primary">
+                                {payload[0].value}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="total"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  fill="url(#colorTotal)"
+                  fillOpacity={1}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="rounded-lg border bg-card p-6">
+        {error ? (
+          <div className="text-red-500 p-4 rounded-md bg-red-50 border border-red-200">
+            <h3 className="text-lg font-semibold mb-2">Error al cargar los leads</h3>
+            <p>{error}</p>
+            <Button
+              className="mt-4"
+              variant="outline"
+              onClick={fetchLeads}
+            >
+              Reintentar
+            </Button>
+          </div>
+        ) : loading ? (
+          <TableSkeleton />
+        ) : (
+          <DocumentsTable 
+            data={leads} 
+            onLeadUpdated={handleLeadUpdated}
+          />
+        )}
+      </div>
+    </>
+  )
+}
+
+function DashboardLayout({ children }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const menuItems = [
-    { icon: <RiDashboardLine className="w-4 h-4" />, label: "Dashboard" },
-    { icon: <RiLineChartLine className="w-4 h-4" />, label: "Leads" },
-    { icon: <RiUserLine className="w-4 h-4" />, label: "Usuarios" }
+    { icon: <RiDashboardLine className="w-4 h-4" />, label: "Dashboard", path: "/" },
+    { icon: <RiLineChartLine className="w-4 h-4" />, label: "Leads", path: "/leads" },
+    { icon: <RiUserLine className="w-4 h-4" />, label: "Usuarios", path: "/users" },
+    { icon: <RiFileTextLine className="w-4 h-4" />, label: "Plantillas", path: "/api/templates" }
   ]
 
   useEffect(() => {
@@ -140,8 +303,9 @@ function Dashboard() {
               {menuItems.map((item, index) => (
                 <Button 
                   key={index}
-                  variant="ghost" 
+                  variant={location.pathname === item.path ? "default" : "ghost"}
                   className="w-full justify-start gap-2"
+                  onClick={() => navigate(item.path)}
                 >
                   {item.icon}
                   {item.label}
@@ -152,7 +316,9 @@ function Dashboard() {
 
           <div className="flex-1 p-8">
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-3xl font-bold">Gestión de Leads</h2>
+              <h2 className="text-3xl font-bold">
+                {menuItems.find(item => item.path === location.pathname)?.label || "Dashboard"}
+              </h2>
               <Button 
                 variant="outline"
                 onClick={toggleTheme}
@@ -163,141 +329,7 @@ function Dashboard() {
                 <span>Cambiar Tema</span>
               </Button>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {metrics.map((metric, index) => (
-                <Metrics key={index} metric={metric} />
-              ))}
-            </div>
-
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle>Total de Leads por Fecha de Creación</CardTitle>
-                <CardDescription>Historial de creación de leads del 3 al 10 de mayo</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={(() => {
-                        const dates = [];
-                        for (let day = 3; day <= 10; day++) {
-                          dates.push({
-                            date: `2025-05-${String(day).padStart(2, '0')}`,
-                            total: 0
-                          });
-                        }
-
-                        leads.forEach(lead => {
-                          const leadDate = new Date(lead.created_at);
-                          const dateStr = leadDate.toISOString().split('T')[0];
-                          const dateEntry = dates.find(d => d.date === dateStr);
-                          if (dateEntry) {
-                            dateEntry.total += 1;
-                          }
-                        });
-
-                        return dates;
-                      })()}
-                      margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                    >
-                      <defs>
-                        <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
-                          <stop offset="50%" stopColor="hsl(var(--primary))" stopOpacity={0.4}/>
-                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.1}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.2} />
-                      <XAxis 
-                        dataKey="date" 
-                        tickFormatter={(dateStr) => {
-                          const day = dateStr.split('-')[2];
-                          return `${parseInt(day)} may`;
-                        }}
-                        className="text-muted-foreground text-xs"
-                        stroke="hsl(var(--muted-foreground))"
-                        tickLine={false}
-                        axisLine={false}
-                        dy={10}
-                      />
-                      <YAxis
-                        className="text-muted-foreground text-xs"
-                        stroke="hsl(var(--muted-foreground))"
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(value) => Math.floor(value)}
-                        dx={-10}
-                      />
-                      <Tooltip
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            return (
-                              <div className="rounded-lg border bg-background p-2 shadow-xl">
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div className="flex flex-col">
-                                    <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                      Fecha
-                                    </span>
-                                    <span className="font-bold text-foreground">
-                                      {new Date(payload[0].payload.date).toLocaleDateString('es-ES', {
-                                        month: 'short',
-                                        day: 'numeric',
-                                        year: 'numeric'
-                                      })}
-                                    </span>
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                      Total Leads
-                                    </span>
-                                    <span className="font-bold text-primary">
-                                      {payload[0].value}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="total"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth={2}
-                        fill="url(#colorTotal)"
-                        fillOpacity={1}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="rounded-lg border bg-card p-6">
-              {error ? (
-                <div className="text-red-500 p-4 rounded-md bg-red-50 border border-red-200">
-                  <h3 className="text-lg font-semibold mb-2">Error al cargar los leads</h3>
-                  <p>{error}</p>
-                  <Button
-                    className="mt-4"
-                    variant="outline"
-                    onClick={fetchLeads}
-                  >
-                    Reintentar
-                  </Button>
-                </div>
-              ) : loading ? (
-                <TableSkeleton />
-              ) : (
-                <DocumentsTable 
-                  data={leads} 
-                  onLeadUpdated={handleLeadUpdated}
-                />
-              )}
-            </div>
+            {children}
           </div>
         </div>
       </div>
@@ -305,13 +337,43 @@ function Dashboard() {
   )
 }
 
+function PrivateRoute({ children }) {
+  const isAuthenticated = localStorage.getItem('userName') !== null;
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
+}
+
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/api/users/login" element={<LoginPage />} />
-        <Route path="/api/templates" element={<TemplateForm />} />
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <Dashboard />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/api/templates"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <TemplateForm />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );

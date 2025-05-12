@@ -53,7 +53,7 @@ export default function TemplateForm() {
     setLoading(true);
     setSuccess(false);
     try {
-      await fetch("http://localhost:3000/api/templates", {
+      await fetch("http://localhost:3003/api/templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
