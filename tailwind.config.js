@@ -1,7 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ["class"],
-  content: ["./index.html", "./src/**/*.{js,jsx}", "./dashboard/**/*.{ts,tsx}"],
+  content: [
+    "./index.html",
+    "./src/**/*.{js,jsx}"
+  ],
   prefix: "",
   theme: {
     container: {
@@ -92,6 +95,6 @@ export default {
   },
   plugins: [
     require("tailwindcss-animate"),
-    require("@tailwindcss/container-queries"),
+    require("@tailwindcss/container-queries")
   ],
-};
+}
