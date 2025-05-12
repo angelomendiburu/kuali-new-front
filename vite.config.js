@@ -1,9 +1,9 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
-import tailwindcss from 'tailwindcss'
-import autoprefixer from 'autoprefixer'
-import postcssImport from 'postcss-import'
+import path from "path";
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from 'tailwindcss';
+import autoprefixer from 'autoprefixer';
+import postcssImport from 'postcss-import';
 
 export default defineConfig({
   plugins: [react()],
@@ -20,6 +20,7 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    extensions: [".js", ".jsx", ".ts", ".tsx", ".json"],
   },
   optimizeDeps: {
     include: ['@tanstack/react-table']
@@ -33,4 +34,4 @@ export default defineConfig({
     port: 5004,
     strictPort: false // Permitir que Vite use un puerto alternativo si el 5004 está ocupado
   }
-})
+});
