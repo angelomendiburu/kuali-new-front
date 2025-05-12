@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { RegisterForm } from "./registerForm";
+import { useNavigate } from "react-router-dom";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -11,6 +12,7 @@ export function LoginForm() {
   const [error, setError] = useState("");
   const [dark, setDark] = useState(() => localStorage.getItem("theme") === "dark");
   const [showRegister, setShowRegister] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (dark) {
@@ -45,7 +47,7 @@ export function LoginForm() {
       localStorage.setItem('userName', data.user.name);
       localStorage.setItem('userEmail', data.user.email);
       
-      window.location.href = 'http://localhost:5004/';
+      navigate('/api/leads');
     } catch (err) {
       console.error("Error durante el login:", err.message);
       setError(err.message);
@@ -162,7 +164,7 @@ export function LoginForm() {
                   fill="currentColor"
                 />
               </svg>
-              Continuar con Google
+              Google
             </Button>
           </div>
         </div>
