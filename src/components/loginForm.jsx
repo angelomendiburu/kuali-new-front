@@ -125,9 +125,6 @@ export function LoginForm() {
                   >
                     Crear cuenta
                   </button>
-                  <a href="#" className="text-primary hover:underline underline-offset-4">
-                    ¿Olvidaste tu contraseña?
-                  </a>
                 </div>
 
                 {error && (
@@ -136,7 +133,7 @@ export function LoginForm() {
                   </div>
                 )}
 
-                <Button type="submit" className="h-9">
+                <Button type="submit" className="w-full">
                   Iniciar sesión
                 </Button>
               </div>
@@ -156,7 +153,7 @@ export function LoginForm() {
             <Button
               variant="outline"
               type="button"
-              className="h-9 flex items-center justify-center gap-2"
+              className="w-full flex items-center justify-center gap-2"
               onClick={handleGoogleLogin}
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24">

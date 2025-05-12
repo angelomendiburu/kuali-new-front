@@ -11,13 +11,16 @@ export function RegisterForm({ onCancel }) {
     name: "",
   });
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
 
     if (formData.password !== formData.confirmPassword) {
       setError("Las contraseñas no coinciden");
+      setIsLoading(false);
       return;
     }
 
@@ -50,6 +53,8 @@ export function RegisterForm({ onCancel }) {
     } catch (err) {
       console.error("Error durante el registro:", err.message);
       setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -84,6 +89,7 @@ export function RegisterForm({ onCancel }) {
                   value={formData.name}
                   onChange={handleChange('name')}
                   required
+                  disabled={isLoading}
                 />
               </div>
               <div className="grid gap-2">
@@ -97,6 +103,7 @@ export function RegisterForm({ onCancel }) {
                   value={formData.email}
                   onChange={handleChange('email')}
                   required
+                  disabled={isLoading}
                 />
               </div>
               <div className="grid gap-2">
@@ -109,6 +116,7 @@ export function RegisterForm({ onCancel }) {
                   value={formData.password}
                   onChange={handleChange('password')}
                   required
+                  disabled={isLoading}
                 />
               </div>
               <div className="grid gap-2">
@@ -121,6 +129,7 @@ export function RegisterForm({ onCancel }) {
                   value={formData.confirmPassword}
                   onChange={handleChange('confirmPassword')}
                   required
+                  disabled={isLoading}
                 />
               </div>
 
@@ -131,11 +140,21 @@ export function RegisterForm({ onCancel }) {
               )}
 
               <div className="flex flex-col sm:flex-row gap-2">
-                <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={onCancel}
+                  disabled={isLoading}
+                >
                   Cancelar
                 </Button>
-                <Button type="submit" className="flex-1">
-                  Registrarse
+                <Button 
+                  type="submit" 
+                  className="flex-1"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Registrando...' : 'Registrarse'}
                 </Button>
               </div>
             </div>
