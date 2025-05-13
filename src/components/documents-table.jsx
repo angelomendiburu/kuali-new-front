@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { toast } from 'sonner';
 import {
   flexRender,
@@ -11,13 +11,6 @@ import {
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from './ui/select';
-import {
   Table,
   TableBody,
   TableCell,
@@ -27,6 +20,9 @@ import {
 } from './ui/table';
 import { leadsService } from '../services/leadsService';
 import { LeadFormDialog } from './lead-form-dialog';
+import { FiTrash2, FiEdit2 } from "react-icons/fi";
+import { FiMail } from "react-icons/fi";
+import { RiWhatsappLine } from "react-icons/ri";
 
 const columns = [
   {
@@ -39,13 +35,43 @@ const columns = [
     accessorKey: 'email',
     header: 'Email',
     enableSorting: true,
-    cell: ({ row }) => row.original.email || ''
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2">
+        <span>{row.original.email || ''}</span>
+        {row.original.email && (
+          <a
+            href={`mailto:${row.original.email}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Enviar correo"
+            className="text-blue-600 hover:text-blue-800"
+          >
+            <FiMail />
+          </a>
+        )}
+      </div>
+    )
   },
   {
     accessorKey: 'phone',
     header: 'Teléfono',
     enableSorting: true,
-    cell: ({ row }) => row.original.phone || ''
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2">
+        <span>{row.original.phone || ''}</span>
+        {row.original.phone && (
+          <a
+            href={`https://wa.me/${row.original.phone.replace(/[^0-9]/g, '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Enviar WhatsApp"
+            className="text-green-600 hover:text-green-800"
+          >
+            <RiWhatsappLine />
+          </a>
+        )}
+      </div>
+    )
   },
   {
     accessorKey: 'company',
@@ -79,56 +105,55 @@ const columns = [
     cell: function ActionsCell({ row, table }) {
       const lead = row.original;
       const { meta } = table.options;
-      
+
       return (
         <div className="flex gap-2 justify-end">
-          <Button 
-            variant="outline" 
-            size="sm"
+          <button
+            title="Editar"
             onClick={(e) => {
               e.stopPropagation();
               if (meta?.onEdit) meta.onEdit(lead);
             }}
+            className="p-2 rounded-full bg-blue-50 dark:bg-blue-900 hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-600 dark:text-blue-300 transition"
           >
-            Editar
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-red-500 hover:text-red-700"
+            <FiEdit2 />
+          </button>
+          <button
+            title="Borrar"
             onClick={(e) => {
               e.stopPropagation();
               if (meta?.onDelete) meta.onDelete(lead);
             }}
+            className="p-2 rounded-full bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800 text-red-600 dark:text-red-300 transition"
           >
-            Eliminar
-          </Button>
+            <FiTrash2 />
+          </button>
         </div>
       );
     },
   },
 ];
 
-export function DocumentsTable({ data: initialData, onLeadUpdated }) {
+function DocumentsTable(props) {
+  const { data: initialData, onLeadUpdated } = props;
   const [sorting, setSorting] = React.useState([]);
   const [columnFilters, setColumnFilters] = React.useState([]);
   const [globalFilter, setGlobalFilter] = React.useState('');
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [selectedLead, setSelectedLead] = React.useState(null);
   const [tableData, setTableData] = React.useState(initialData);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [leadToDelete, setLeadToDelete] = useState(null);
 
-  // Mantener los datos de la tabla actualizados cuando cambian los datos iniciales
   React.useEffect(() => {
     setTableData(initialData);
   }, [initialData]);
 
   const updateLocalData = (newLead) => {
     setTableData(prevData => {
-      // Si el lead ya existe, actualizarlo
       if (prevData.some(item => item.id === newLead.id)) {
         return prevData.map(item => item.id === newLead.id ? newLead : item);
       }
-      // Si es un nuevo lead, agregarlo al inicio
       return [newLead, ...prevData];
     });
   };
@@ -146,58 +171,50 @@ export function DocumentsTable({ data: initialData, onLeadUpdated }) {
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (lead) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este lead?')) {
-      try {
-        await toast.promise(leadsService.delete(lead.id), {
-          loading: 'Eliminando lead...',
-          success: 'Lead eliminado correctamente',
-          error: 'Error al eliminar el lead',
-        });
-        // Actualizar datos localmente
-        setTableData(prevData => prevData.filter(item => item.id !== lead.id));
-        // Notificar al componente padre para actualizar métricas
-        await onLeadUpdated();
-      } catch (error) {
-        console.error('Error al eliminar el lead:', error);
-      }
+  const handleDelete = (lead) => {
+    setLeadToDelete(lead);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!leadToDelete) return;
+    try {
+      await toast.promise(leadsService.delete(leadToDelete.id), {
+        loading: 'Eliminando lead...',
+        success: 'Lead eliminado correctamente',
+        error: 'Error al eliminar el lead',
+      });
+      setTableData(prevData => prevData.filter(item => item.id !== leadToDelete.id));
+      await onLeadUpdated();
+    } catch (error) {
+      console.error('Error al eliminar el lead:', error);
     }
+    setDeleteConfirmOpen(false);
+    setLeadToDelete(null);
   };
 
   const handleFormSubmit = async (formData) => {
     try {
       if (selectedLead) {
-        // Asegurarnos de incluir los nombres al actualizar
         const updateData = {
           ...selectedLead,
           ...formData,
           company_name: formData.company_name,
           event_name: formData.event_name,
         };
-
-        console.log('Enviando actualización:', updateData);
         const updatedLead = await leadsService.update(selectedLead.id, updateData);
-        
-        // Actualizar datos localmente con el lead actualizado
         updateLocalData(updatedLead);
         toast.success('Lead actualizado correctamente');
         setIsFormOpen(false);
         setSelectedLead(null);
-        
-        // Notificar al componente padre para actualizar métricas
         await onLeadUpdated();
       } else {
         const newLead = await leadsService.create(formData);
-        
-        // Actualizar los datos locales inmediatamente
         setTableData(currentData => [newLead, ...currentData]);
         setIsFormOpen(false);
-        
-        // Notificar para actualizar métricas
         if (onLeadUpdated) {
           await onLeadUpdated();
         }
-        
         toast.success('Lead creado correctamente');
       }
     } catch (error) {
@@ -250,11 +267,11 @@ export function DocumentsTable({ data: initialData, onLeadUpdated }) {
         </div>
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-xl shadow-lg overflow-hidden bg-white dark:bg-zinc-900">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="bg-zinc-100 dark:bg-zinc-800">
                 {headerGroup.headers.map((header) => (
                   <TableHead 
                     key={header.id}
@@ -284,11 +301,13 @@ export function DocumentsTable({ data: initialData, onLeadUpdated }) {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
+              table.getRowModel().rows.map((row, idx) => (
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className="hover:bg-muted/50 cursor-pointer"
+                  className={`transition hover:bg-zinc-50 dark:hover:bg-zinc-800 ${
+                    idx % 2 === 0 ? "bg-white dark:bg-zinc-900" : "bg-zinc-50 dark:bg-zinc-950"
+                  }`}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -346,6 +365,35 @@ export function DocumentsTable({ data: initialData, onLeadUpdated }) {
         }}
         onSubmit={handleFormSubmit}
       />
+
+      {deleteConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white dark:bg-zinc-900 rounded-lg p-6 w-full max-w-sm shadow-lg">
+            <h2 className="text-lg font-bold mb-4 text-zinc-900 dark:text-zinc-100">
+              ¿Eliminar lead?
+            </h2>
+            <p className="mb-6 text-zinc-700 dark:text-zinc-300">
+              ¿Estás seguro de que deseas eliminar el lead <b>{leadToDelete?.name}</b>? Esta acción no se puede deshacer.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setDeleteConfirmOpen(false)}
+                className="px-4 py-2 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+export default DocumentsTable;

@@ -6,7 +6,7 @@ import { RiDashboardLine, RiLineChartLine, RiUserLine, RiMoonLine, RiSunLine, Ri
 import { FiDollarSign } from 'react-icons/fi'
 import { BsPeople, BsGraphUp } from 'react-icons/bs'
 import { IoMdTrendingUp } from 'react-icons/io'
-import { DocumentsTable } from './components/documents-table'
+import  DocumentsTable  from './components/documents-table'
 import { leadsService } from './services/leadsService'
 import TableSkeleton from './components/ui/table-skeleton'
 import { Toaster } from 'sonner'
@@ -14,7 +14,11 @@ import { Metrics } from './components/metrics'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card"
 import LoginPage from "../App/Login/page"
-import TemplateForm from './components/TemplateForm'
+
+import TemplatesPage from "./pages/TemplatesPage";
+import UsersPage from "./pages/UsersPage";
+import LeadsPage from "./pages/LeadsPage";
+import CompanyDetailPage from "./pages/CompanyDetailPage";
 
 function Dashboard() {
   const [leads, setLeads] = useState([]);
@@ -326,7 +330,7 @@ function DashboardLayout({ children }) {
               >
                 <RiSunLine className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                 <RiMoonLine className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                <span>Cambiar Tema</span>
+                
               </Button>
             </div>
             {children}
@@ -364,15 +368,47 @@ function App() {
           }
         />
         <Route
-          path="/api/templates"
+          path="/leads"
           element={
             <PrivateRoute>
               <DashboardLayout>
-                <TemplateForm />
+                <LeadsPage />
               </DashboardLayout>
             </PrivateRoute>
           }
         />
+        <Route
+          path="/api/templates"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <TemplatesPage />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/users"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <UsersPage />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/companies/:id"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <CompanyDetailPage />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+        <Route path="/templates" element={<TemplatesPage />} />
+        <Route path="/users" element={<UsersPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
