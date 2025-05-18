@@ -38,6 +38,7 @@ function DocumentsTable(props) {
   const [leadToDelete, setLeadToDelete] = useState(null);
   const [sendMailLead, setSendMailLead] = useState(null);
   const [sendWhatsappLead, setSendWhatsappLead] = useState(null);
+  const [companyFilter, setCompanyFilter] = useState('');
 
   React.useEffect(() => {
     setTableData(initialData);
@@ -124,6 +125,20 @@ function DocumentsTable(props) {
     setSendWhatsappLead(lead);
   };
 
+  // Elimina el filtrado manual de filteredData y usa React Table para filtrar por empresa
+
+  // Agrega filtro de empresa a columnFilters
+  React.useEffect(() => {
+    if (companyFilter) {
+      setColumnFilters((prev) => {
+        const others = prev.filter(f => f.id !== 'company');
+        return [...others, { id: 'company', value: companyFilter }];
+      });
+    } else {
+      setColumnFilters((prev) => prev.filter(f => f.id !== 'company'));
+    }
+  }, [companyFilter]);
+
   const columns = [
     {
       accessorKey: 'name',
@@ -175,6 +190,10 @@ function DocumentsTable(props) {
       accessorKey: 'company',
       header: 'Empresa',
       enableSorting: true,
+      filterFn: (row, columnId, filterValue) => {
+        const company = row.original.company;
+        return company?.name?.toLowerCase().includes(filterValue.toLowerCase());
+      },
       cell: ({ row }) => {
         const company = row.original.company;
         return company?.name || 'Sin empresa';
@@ -262,6 +281,12 @@ function DocumentsTable(props) {
             value={globalFilter ?? ''}
             onChange={(e) => setGlobalFilter(e.target.value)}
             className="max-w-sm"
+          />
+          <Input
+            placeholder="Filtrar por empresa..."
+            value={companyFilter}
+            onChange={e => setCompanyFilter(e.target.value)}
+            className="max-w-xs"
           />
         </div>
         <div className="flex items-center gap-2">
