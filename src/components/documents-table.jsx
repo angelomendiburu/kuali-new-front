@@ -83,11 +83,11 @@ const columns = [
     }
   },
   {
-    accessorKey: 'users',
+    accessorKey: 'user',
     header: 'Usuario',
     enableSorting: true,
     cell: ({ row }) => {
-      const user = row.original.users;
+      const user = row.original.user;
       return user?.name || 'No asignado';
     }
   },
