@@ -54,7 +54,7 @@ export default function TemplatesPage() {
           <table className="min-w-full">
             <thead>
               <tr className="bg-zinc-100 dark:bg-zinc-800">
-                <th className="py-3 px-6 text-left font-semibold text-zinc-700 dark:text-zinc-200">Nombre</th>
+                <th className="py-3 px-6 text-left font-semibold text-zinc-700 dark:text-zinc-200">Asunto</th>
                 <th className="py-3 px-6 text-left font-semibold text-zinc-700 dark:text-zinc-200">Tipo</th>
                 <th className="py-3 px-6 text-left font-semibold text-zinc-700 dark:text-zinc-200">Cuerpo</th>
                 <th className="py-3 px-6 text-left font-semibold text-zinc-700 dark:text-zinc-200">Acciones</th>
