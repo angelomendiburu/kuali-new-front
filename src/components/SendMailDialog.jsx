@@ -51,12 +51,28 @@ export default function SendMailDialog({ open, onClose, lead, mode }) {
         const phone = lead.phone ? lead.phone.replace(/[^0-9]/g, '') : '';
         const text = encodeURIComponent(preview.replace(/<[^>]+>/g, ''));
         if (phone) {
+          // Log WhatsApp send before opening the window
+          await fetch('http://localhost:3003/api/templates/log-whatsapp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              leadId: lead.id,
+              templateId: Number(selectedTemplateId),
+              details: {
+                phone,
+                leadName: lead.name,
+                templateName: tpl.name,
+              }
+            })
+          });
           window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
+          toast.success('WhatsApp abierto para envío');
+          onClose();
         } else {
           toast.error('El lead no tiene número de teléfono válido');
         }
-        onClose();
-      } else {
+      } else { // Modo correo
         await fetch('http://localhost:3003/api/templates/send-mail', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -65,13 +81,16 @@ export default function SendMailDialog({ open, onClose, lead, mode }) {
             to: lead.email,
             subject: tpl.name,
             body: preview,
+            leadId: lead.id, // Añadido: Incluir leadId para el registro en el backend
+            templateId: Number(selectedTemplateId), // Añadido: Incluir templateId para el registro en el backend
           })
         });
         toast.success('Correo enviado correctamente');
         onClose();
       }
     } catch (e) {
-      toast.error('Error al enviar el mensaje');
+      console.error('Error:', e);
+      toast.error('Error al procesar el envío');
     }
     setSending(false);
   };

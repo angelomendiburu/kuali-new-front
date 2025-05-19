@@ -8,6 +8,7 @@ export default function UsersPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
+  const userRole = localStorage.getItem('userRole'); // Obtener el rol del usuario actual
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -45,7 +46,10 @@ export default function UsersPage() {
               <tr className="bg-zinc-100 dark:bg-zinc-800">
                 <th className="py-3 px-6 text-left font-semibold text-zinc-700 dark:text-zinc-200">Nombre</th>
                 <th className="py-3 px-6 text-left font-semibold text-zinc-700 dark:text-zinc-200">Correo</th>
-                <th className="py-3 px-6 text-left font-semibold text-zinc-700 dark:text-zinc-200">Acciones</th>
+                <th className="py-3 px-6 text-left font-semibold text-zinc-700 dark:text-zinc-200">Rol</th>
+                {userRole === 'admin' && ( // Solo mostrar la columna de acciones si es admin
+                  <th className="py-3 px-6 text-left font-semibold text-zinc-700 dark:text-zinc-200">Acciones</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -58,18 +62,21 @@ export default function UsersPage() {
                 >
                   <td className="py-3 px-6 border-b border-zinc-100 dark:border-zinc-800">{user.name}</td>
                   <td className="py-3 px-6 border-b border-zinc-100 dark:border-zinc-800">{user.email}</td>
-                  <td className="py-3 px-6 border-b border-zinc-100 dark:border-zinc-800">
-                    <button
-                      title="Borrar"
-                      onClick={() => {
-                        setUserToDelete(user);
-                        setDeleteConfirmOpen(true);
-                      }}
-                      className="p-2 rounded-full bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800 text-red-600 dark:text-red-300 transition"
-                    >
-                      <FiTrash2 />
-                    </button>
-                  </td>
+                  <td className="py-3 px-6 border-b border-zinc-100 dark:border-zinc-800">{user.role}</td>
+                  {userRole === 'admin' && ( // Solo mostrar botón de eliminar si es admin
+                    <td className="py-3 px-6 border-b border-zinc-100 dark:border-zinc-800">
+                      <button
+                        title="Borrar"
+                        onClick={() => {
+                          setUserToDelete(user);
+                          setDeleteConfirmOpen(true);
+                        }}
+                        className="p-2 rounded-full bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800 text-red-600 dark:text-red-300 transition"
+                      >
+                        <FiTrash2 />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

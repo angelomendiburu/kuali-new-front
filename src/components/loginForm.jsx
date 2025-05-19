@@ -21,6 +21,59 @@ export function LoginForm() {
       localStorage.setItem("theme", "light");
     }
   }, [dark]);
+  useEffect(() => {
+    // Verificar si hay parámetros de autenticación de Google en la URL
+    const params = new URLSearchParams(window.location.search);
+    const googleAuthData = {
+      id: params.get('id'),
+      email: params.get('email'),
+      name: params.get('name'),
+      role: params.get('role')
+    };
+
+    if (googleAuthData.email) {
+      // Si tenemos datos de autenticación de Google, los guardamos
+      localStorage.setItem('userName', googleAuthData.name);
+      localStorage.setItem('userEmail', googleAuthData.email);
+      localStorage.setItem('userRole', googleAuthData.role);
+      
+      // Limpiamos la URL y redirigimos al dashboard
+      window.history.replaceState({}, document.title, window.location.pathname);
+      window.location.href = 'http://localhost:5004/';
+      return;
+    }
+
+    // Si no hay parámetros de Google, verificamos el estado de autenticación normal
+    const checkAuthStatus = async () => {
+      try {
+        const response = await fetch("http://localhost:3003/api/auth/status", {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        
+        if (data.isAuthenticated && !localStorage.getItem('userName')) {
+          // Obtener datos completos del usuario
+          const userResponse = await fetch(`http://localhost:3003/api/users/${data.user.id}`, {
+            credentials: 'include'
+          });
+          const userData = await userResponse.json();
+          
+          localStorage.setItem('userName', userData.name);
+          localStorage.setItem('userEmail', userData.email);
+          localStorage.setItem('userRole', userData.role);
+          
+          window.location.href = 'http://localhost:5004/';
+        }
+      } catch (err) {
+        console.error("Error checking auth status:", err);
+      }
+    };
+
+    // Only check status if we don't have user data already
+    if (!localStorage.getItem('userName')) {
+      checkAuthStatus(); // Cambiado de checkGoogleAuthStatus a checkAuthStatus
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -44,6 +97,7 @@ export function LoginForm() {
 
       localStorage.setItem('userName', data.user.name);
       localStorage.setItem('userEmail', data.user.email);
+      localStorage.setItem('userRole', data.user.role); // Guardar el rol del usuario en localStorage
       
       window.location.href = 'http://localhost:5004/';
     } catch (err) {

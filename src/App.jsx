@@ -19,6 +19,7 @@ import TemplatesPage from "./pages/TemplatesPage";
 import UsersPage from "./pages/UsersPage";
 import LeadsPage from "./pages/LeadsPage";
 import CompanyDetailPage from "./pages/CompanyDetailPage";
+import RegistrosPage from "./pages/RegistrosPage";
 
 function Dashboard() {
   const [leads, setLeads] = useState([]);
@@ -273,12 +274,14 @@ function Dashboard() {
 function DashboardLayout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const userRole = localStorage.getItem('userRole');
 
   const menuItems = [
     { icon: <RiDashboardLine className="w-4 h-4" />, label: "Dashboard", path: "/" },
     { icon: <RiLineChartLine className="w-4 h-4" />, label: "Leads", path: "/leads" },
     { icon: <RiUserLine className="w-4 h-4" />, label: "Usuarios", path: "/users" },
-    { icon: <RiFileTextLine className="w-4 h-4" />, label: "Plantillas", path: "/api/templates" }
+    { icon: <RiFileTextLine className="w-4 h-4" />, label: "Plantillas", path: "/api/templates" },
+    ...(userRole === 'admin' ? [{ icon: <RiFileTextLine className="w-4 h-4" />, label: "Registros", path: "/registros" }] : [])
   ]
 
   useEffect(() => {
@@ -343,7 +346,16 @@ function DashboardLayout({ children }) {
 
 function PrivateRoute({ children }) {
   const isAuthenticated = localStorage.getItem('userName') !== null;
+  const userRole = localStorage.getItem('userRole');
   const location = useLocation();
+
+  // Check if the current route is /registros
+  const isRegistrosRoute = location.pathname === '/registros';
+
+  // If trying to access /registros and not admin, redirect to home
+  if (isRegistrosRoute && userRole !== 'admin') {
+    return <Navigate to="/" replace state={{ from: location }} />;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
@@ -403,6 +415,16 @@ function App() {
             <PrivateRoute>
               <DashboardLayout>
                 <CompanyDetailPage />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/registros"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <RegistrosPage />
               </DashboardLayout>
             </PrivateRoute>
           }
