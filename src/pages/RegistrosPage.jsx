@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { RiDeleteBinLine } from 'react-icons/ri';
 import { toast } from 'sonner';
+import { ImportExportButtons } from '../components/ImportExportButtons';
 import {
   Table,
   TableBody,
@@ -223,10 +224,26 @@ function RegistrosPage() {
     }
   };
 
+  const prepareLogsForExport = (logs) => {
+    return logs.map(log => ({
+      Fecha: new Date(log.createdAt).toLocaleString('es-ES'),
+      Usuario: log.user?.name || log.userId,
+      Acción: log.action.replace(/_/g, ' '),
+      Lead: log.lead?.name || '-',
+      Plantilla: log.template?.name || '-',
+      Detalles: typeof log.details === 'object' ? JSON.stringify(log.details) : log.details
+    }));
+  };
+
   return (
     <Card className="max-w-[95%] mx-auto">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-2xl font-bold">Registros de Actividad</CardTitle>
+        <ImportExportButtons
+          onImport={() => {}} // La importación está deshabilitada para registros
+          data={prepareLogsForExport(logs)}
+          filename={`registros_${new Date().toISOString().split('T')[0]}`}
+        />
       </CardHeader>
       <CardContent>
         {loading ? (

@@ -20,6 +20,7 @@ import UsersPage from "./pages/UsersPage";
 import LeadsPage from "./pages/LeadsPage";
 import CompanyDetailPage from "./pages/CompanyDetailPage";
 import RegistrosPage from "./pages/RegistrosPage";
+import { ImportExportButtons } from './components/ImportExportButtons';
 
 function Dashboard() {
   const [leads, setLeads] = useState([]);
@@ -135,6 +136,25 @@ function Dashboard() {
     return dates;
   };
 
+  const handleImport = async (importedData) => {
+    try {
+      setLoading(true);
+      // Aquí podrías agregar validación de datos antes de enviarlos al backend
+      for (const lead of importedData) {
+        await leadsService.create(lead);
+      }
+      const data = await leadsService.getAll();
+      setLeads(data);
+      setMetrics(calculateMetrics(data));
+      setError(null);
+    } catch (err) {
+      console.error('Error al importar leads:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -244,6 +264,17 @@ function Dashboard() {
           </div>
         </CardContent>
       </Card>
+
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+          Lista de Leads
+        </h2>
+        <ImportExportButtons
+          onImport={handleImport}
+          data={leads}
+          filename="dashboard_leads"
+        />
+      </div>
 
       <div className="rounded-lg border bg-card p-6">
         {error ? (
