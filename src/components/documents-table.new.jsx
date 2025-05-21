@@ -330,7 +330,7 @@ function DocumentsTable(props) {
             type="date"
             value={dateFilter}
             onChange={e => setDateFilter(e.target.value)}
-            className="max-w-xs dark:text-zinc-200"
+            className="max-w-xs"
             placeholder="Filtrar por fecha"
           />
         </div>

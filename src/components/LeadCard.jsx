@@ -98,7 +98,11 @@ export default function LeadCard({ lead }) {
 
       {/* Otros datos */}
       <div className="mb-2 text-zinc-600 dark:text-zinc-400 text-sm">
-        <b>Creado:</b> {new Date(lead.created_at).toLocaleString("es-ES")}
+        <b>Creado:</b> {new Date(lead.created_at).toLocaleString("es-PE", {
+          timeZone: 'America/Lima',
+          dateStyle: 'medium',
+          timeStyle: 'short'
+        })}
       </div>
       {lead.notes && (
         <div className="mb-2 text-zinc-700 dark:text-zinc-200">

@@ -21,6 +21,7 @@ import LeadsPage from "./pages/LeadsPage";
 import CompanyDetailPage from "./pages/CompanyDetailPage";
 import RegistrosPage from "./pages/RegistrosPage";
 import { ImportExportButtons } from './components/ImportExportButtons';
+import { formatDateAsISO } from './lib/format';
 
 function Dashboard() {
   const [leads, setLeads] = useState([]);
@@ -30,10 +31,20 @@ function Dashboard() {
 
   const calculateMetrics = React.useCallback((leads) => {
     const now = new Date();
-    const lastMonth = new Date(now.setMonth(now.getMonth() - 1));
+    const lastMonth = new Date();
+    lastMonth.setMonth(now.getMonth() - 1);
     
     const totalLeads = leads.length;
-    const newLeadsThisMonth = leads.filter(lead => new Date(lead.created_at) >= lastMonth).length;
+    const newLeadsThisMonth = leads.filter(lead => {
+      if (!lead.created_at) return false;
+      try {
+        const leadDate = new Date(lead.created_at);
+        return !isNaN(leadDate.getTime()) && leadDate >= lastMonth;
+      } catch (error) {
+        console.error('Error processing lead date for metrics:', error, lead);
+        return false;
+      }
+    }).length;
     const activeLeads = leads.filter(lead => lead.status !== 'cerrado').length;
     const convertedLeads = leads.filter(lead => lead.status === 'cerrado').length;
     const conversionRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
@@ -116,22 +127,44 @@ function Dashboard() {
   }, [fetchLeads]);
 
   const getDateRange = () => {
-    const today = new Date();
-    const endDate = new Date(today);
-    const startDate = new Date(today);
-    startDate.setDate(today.getDate() - 7); // Mostrar últimos 7 días
+    const peruDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Lima' }));
+    const endDate = new Date(peruDate);
+    const startDate = new Date(peruDate);
+    startDate.setDate(peruDate.getDate() - 6); // 7 días incluyendo hoy (0-6)
 
     const dates = [];
     let currentDate = new Date(startDate);
 
     while (currentDate <= endDate) {
       dates.push({
-        date: currentDate.toISOString().split('T')[0],
+        date: formatDateAsISO(currentDate),
         total: 0
       });
       currentDate = new Date(currentDate);
       currentDate.setDate(currentDate.getDate() + 1);
     }
+
+    return dates;
+  };
+
+  // Efecto para procesar los leads y actualizar las métricas
+  const processLeadsData = (leads) => {
+    const dates = getDateRange();
+    
+    leads.forEach(lead => {
+      if (!lead.createdAt && !lead.created_at) return;
+      try {
+        const dateStr = formatDateAsISO(lead.createdAt || lead.created_at);
+        if (!dateStr) return;
+
+        const dateEntry = dates.find(d => d.date === dateStr);
+        if (dateEntry) {
+          dateEntry.total += 1;
+        }
+      } catch (error) {
+        console.error('Error processing lead date:', error, lead);
+      }
+    });
 
     return dates;
   };
@@ -174,20 +207,7 @@ function Dashboard() {
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
-                data={(() => {
-                  const dates = getDateRange();
-
-                  leads.forEach(lead => {
-                    const leadDate = new Date(lead.created_at);
-                    const dateStr = leadDate.toISOString().split('T')[0];
-                    const dateEntry = dates.find(d => d.date === dateStr);
-                    if (dateEntry) {
-                      dateEntry.total += 1;
-                    }
-                  });
-
-                  return dates;
-                })()}
+                data={processLeadsData(leads)}
                 margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
               >
                 <defs>
@@ -197,19 +217,22 @@ function Dashboard() {
                     <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.1}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.2} />
-                <XAxis 
-                  dataKey="date" 
-                  tickFormatter={(dateStr) => {
-                    const date = new Date(dateStr);
-                    return `${date.getDate()} ${date.toLocaleString('es', { month: 'short' })}`;
-                  }}
-                  className="text-muted-foreground text-xs"
-                  stroke="hsl(var(--muted-foreground))"
-                  tickLine={false}
-                  axisLine={false}
-                  dy={10}
-                />
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.2} />              <XAxis 
+                dataKey="date" 
+                tickFormatter={(dateStr) => {
+                  const date = new Date(dateStr);
+                  return new Date(date).toLocaleDateString('es-PE', {
+                    timeZone: 'America/Lima',
+                    month: 'short',
+                    day: 'numeric'
+                  });
+                }}
+                className="text-muted-foreground text-xs"
+                stroke="hsl(var(--muted-foreground))"
+                tickLine={false}
+                axisLine={false}
+                dy={10}
+              />
                 <YAxis
                   className="text-muted-foreground text-xs"
                   stroke="hsl(var(--muted-foreground))"
@@ -227,12 +250,10 @@ function Dashboard() {
                             <div className="flex flex-col">
                               <span className="text-[0.70rem] uppercase text-muted-foreground">
                                 Fecha
-                              </span>
-                              <span className="font-bold text-foreground">
-                                {new Date(payload[0].payload.date).toLocaleDateString('es-ES', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric'
+                              </span>                              <span className="font-bold text-foreground">
+                                {new Date(payload[0].payload.date).toLocaleDateString('es-PE', {
+                                  timeZone: 'America/Lima',
+                                  dateStyle: 'medium'
                                 })}
                               </span>
                             </div>

@@ -5,11 +5,14 @@ const API_URL = 'http://localhost:3003/api';
 // Configurar axios para incluir credenciales
 axios.defaults.withCredentials = true;
 
-export const leadsService = {
-  getAll: async () => {
+export const leadsService = {  getAll: async () => {
     try {
       const response = await axios.get(`${API_URL}/leads`);
-      return response.data;
+      // Mapear las fechas a un formato consistente
+      return response.data.map(lead => ({
+        ...lead,
+        createdAt: lead.created_at
+      }));
     } catch (error) {
       console.error('Error al obtener leads:', error);
       throw error.response?.data?.error || error.message;
