@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom"
 import { Button } from './components/ui/button'
 import { toggleTheme } from './lib/utils'
-import { RiDashboardLine, RiLineChartLine, RiUserLine, RiMoonLine, RiSunLine, RiFileTextLine } from 'react-icons/ri'
+import { RiDashboardLine, RiLineChartLine, RiUserLine, RiMoonLine, RiSunLine, RiFileTextLine, RiCalendarLine } from 'react-icons/ri'
 import { FiDollarSign } from 'react-icons/fi'
 import { BsPeople, BsGraphUp } from 'react-icons/bs'
 import { IoMdTrendingUp } from 'react-icons/io'
@@ -20,7 +20,9 @@ import UsersPage from "./pages/UsersPage";
 import LeadsPage from "./pages/LeadsPage";
 import CompanyDetailPage from "./pages/CompanyDetailPage";
 import RegistrosPage from "./pages/RegistrosPage";
+import MeetsPage from "./pages/MeetsPage";
 import { ImportExportButtons } from './components/ImportExportButtons';
+import UserMenu from './components/UserMenu';
 import { formatDateAsISO } from './lib/format';
 
 function Dashboard() {
@@ -333,6 +335,7 @@ function DashboardLayout({ children }) {
     { icon: <RiLineChartLine className="w-4 h-4" />, label: "Leads", path: "/leads" },
     { icon: <RiUserLine className="w-4 h-4" />, label: "Usuarios", path: "/users" },
     { icon: <RiFileTextLine className="w-4 h-4" />, label: "Plantillas", path: "/api/templates" },
+    { icon: <RiCalendarLine className="w-4 h-4" />, label: "Reuniones", path: "/meets" },
     ...(userRole === 'admin' ? [{ icon: <RiFileTextLine className="w-4 h-4" />, label: "Registros", path: "/registros" }] : [])
   ]
 
@@ -373,27 +376,31 @@ function DashboardLayout({ children }) {
             </nav>
           </div>
 
-          <div className="flex-1 p-8">
-            <div className="flex justify-between items-center mb-8">
+          <div className="flex-1">
+            <div className="flex justify-between items-center p-8 border-b">
               <h2 className="text-3xl font-bold">
                 {menuItems.find(item => item.path === location.pathname)?.label || "Dashboard"}
               </h2>
-              <Button 
-                variant="outline"
-                onClick={toggleTheme}
-                className="gap-2"
-              >
-                <RiSunLine className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                <RiMoonLine className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                
-              </Button>
+              <div className="flex items-center gap-4">
+                <Button 
+                  variant="outline"
+                  onClick={toggleTheme}
+                  size="icon"
+                >
+                  <RiSunLine className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <RiMoonLine className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                </Button>
+                <UserMenu />
+              </div>
             </div>
-            {children}
+            <div className="p-8">
+              {children}
+            </div>
           </div>
         </div>
       </div>
     </>
-  )
+  );
 }
 
 function PrivateRoute({ children }) {
@@ -477,6 +484,16 @@ function App() {
             <PrivateRoute>
               <DashboardLayout>
                 <RegistrosPage />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/meets"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <MeetsPage />
               </DashboardLayout>
             </PrivateRoute>
           }
