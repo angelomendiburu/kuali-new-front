@@ -1,6 +1,7 @@
 // Ejemplo para tu Dashboard o página de leads
 import React, { useState, useEffect } from "react";
 import { Button } from "../components/ui/button";
+import { BulkWhatsAppDialog } from "../components/BulkWhatsAppDialog"; // Importar el nuevo componente
 import DocumentsTable from "../components/documents-table";
 import LeadCard from "../components/LeadCard";
 import { leadsService } from "../services/leadsService";
@@ -14,6 +15,8 @@ export default function LeadsPage() {
   const [showCards, setShowCards] = useState(false);
   const [importing, setImporting] = useState(false);
   const [dateFilter, setDateFilter] = useState('');
+  const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = useState(false);
+  const [selectedLeadsForWhatsApp, setSelectedLeadsForWhatsApp] = useState([]);
 
   const fetchLeads = async () => {
     try {
@@ -98,6 +101,45 @@ export default function LeadsPage() {
     }
   };
 
+  const handleOpenWhatsAppDialog = () => {
+    // Placeholder: Select first 2 leads if available.
+    // In a real scenario, this would come from the table's selection mechanism.
+    const leadsToSelect = filteredLeads.slice(0, 2);
+    if (leadsToSelect.length === 0) {
+      toast.info("No hay leads para seleccionar para WhatsApp masivo.");
+      return;
+    }
+    setSelectedLeadsForWhatsApp(leadsToSelect);
+    setIsWhatsAppDialogOpen(true);
+  };
+
+  const handleSendBulkWhatsApp = async (message, leadsToSend) => {
+    if (!message || leadsToSend.length === 0) {
+      toast.error("No hay mensaje o leads seleccionados.");
+      // No need to setIsWhatsAppDialogOpen(false) here if we want the dialog to stay open on validation error
+      return;
+    }
+
+    const leadIds = leadsToSend.map(lead => lead.id);
+    
+    toast.info("Enviando solicitud de mensajes masivos... El servidor se encargará del envío escalonado.");
+
+    try {
+      const response = await leadsService.sendBulkWhatsAppMessages(message, leadIds);
+      // Assuming the backend returns a success message or some status
+      toast.success(response?.message || "Solicitud de envío masivo completada. Los mensajes se están procesando en segundo plano.");
+    } catch (error) {
+      console.error('Error al enviar mensajes masivos de WhatsApp:', error);
+      toast.error(typeof error === 'string' ? error : 'Error al procesar la solicitud de envío masivo.');
+    } finally {
+      // Close dialog and clear selection regardless of success or failure of the API call,
+      // as the request itself has been processed.
+      setIsWhatsAppDialogOpen(false);
+      setSelectedLeadsForWhatsApp([]);
+    }
+  };
+
+
   return (
     <div className="max-w-6xl mx-auto p-4">
       <div className="flex flex-col gap-4 mb-6">
@@ -124,8 +166,16 @@ export default function LeadsPage() {
             <Button
               variant="outline"
               onClick={() => setShowCards((prev) => !prev)}
+              className="hidden sm:inline-flex" // Ocultar en pantallas pequeñas si es necesario
             >
               {showCards ? "Ver como tabla" : "Ver como tarjetas"}
+            </Button>
+            <Button
+              variant="default" // O el variant que prefieras
+              onClick={handleOpenWhatsAppDialog}
+              disabled={importing || filteredLeads.length === 0} // Deshabilitar si no hay leads o importando
+            >
+              Enviar WhatsApp Masivo
             </Button>
           </div>
         </div>
@@ -139,6 +189,15 @@ export default function LeadsPage() {
       ) : (
         <DocumentsTable data={filteredLeads} onLeadUpdated={fetchLeads} />
       )}
+      <BulkWhatsAppDialog
+        isOpen={isWhatsAppDialogOpen}
+        onClose={() => {
+          setIsWhatsAppDialogOpen(false);
+          setSelectedLeadsForWhatsApp([]); // Clear selection on close
+        }}
+        selectedLeads={selectedLeadsForWhatsApp}
+        onSubmit={handleSendBulkWhatsApp}
+      />
     </div>
   );
 }

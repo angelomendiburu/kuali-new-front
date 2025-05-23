@@ -62,5 +62,15 @@ export const leadsService = {  getAll: async () => {
       console.error('Error al eliminar lead:', error);
       throw error.response?.data?.error || error.message;
     }
+  },
+
+  sendBulkWhatsAppMessages: async (message, leadIds) => {
+    try {
+      const response = await axios.post(`${API_URL}/leads/bulk-whatsapp`, { message, leadIds });
+      return response.data; // Assuming the backend returns some confirmation or details
+    } catch (error) {
+      console.error('Error al enviar mensajes de WhatsApp en lote:', error);
+      throw error.response?.data?.error || error.message || 'Error en el servidor al enviar mensajes masivos';
+    }
   }
 };
